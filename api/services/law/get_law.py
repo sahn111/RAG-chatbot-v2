@@ -1,63 +1,50 @@
-import faiss
-import numpy as np
-import pandas as pd
 import requests
 import json
 
-from fastapi import HTTPException
+from langchain.prompts import ChatPromptTemplate
+
 from models import QuestionModel
-from ..embedding_model import get_embedding_model_service
+
+from ..vectore_db_service.get_from_db import *
+
+CHROMA_PATH = "chroma"
+
+PROMPT_TEMPLATE = """
+ - You are a good lawyer who lives in turkey.
+
+ - Answer the question only in turkish language.
+ 
+Answer the question based only on the following context:
+
+{context}
+
+---
+
+Answer the question in turkish only based on the above context: {question}
+"""
 
 def get_relevant_laws_service(question : QuestionModel):
-    model = get_embedding_model_service()
+    results = query_rag(question.question)
+    context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+    prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+    prompt = prompt_template.format(context=context_text, question=question.question)
 
-    index = faiss.read_index("laws_index.faiss")
-    df = pd.read_pickle("laws_dataframe.pkl")
+    print("--------------------------------", prompt)
 
-    try:
-        query_embedding = model.encode([question.question])
-        k = 2
-        _, indices = index.search(np.array(query_embedding), k)        
-        relevant_laws = df.iloc[indices[0]].to_dict(orient='records')
-        return {"relevant_laws": relevant_laws}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-def get_inferenced_laws_service(question : QuestionModel):
-    model = get_embedding_model_service()
-
-    index = faiss.read_index("laws_index.faiss")
-    df = pd.read_pickle("laws_dataframe.pkl")
-
-    try:
-        query_embedding = model.encode([question.question])
-        k = 2
-        _, indices = index.search(np.array(query_embedding), k)        
-        relevant_laws = df.iloc[indices[0]].to_dict(orient='records')
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-    url = "https://api.awanllm.com/v1/chat/completions"
+    url = "https://api.awanllm.com/v1/completions"
     payload = json.dumps({
-        "model": "Awanllm-Llama-3-8B-Dolfin",
-        "messages": [
-            {
-                "role": "user",
-                "content": f"Could you please clarify these two legal statements for the user? Relevant laws: {relevant_laws}"
-            },
-            {
-                "role": "assistant",
-                "content": "The assistant will respond in Turkish."
-            }
-        ]
+    "model": "Meta-Llama-3-8B-Instruct",
+    "prompt": f"{prompt}"
     })
+    
     headers = {
     'Content-Type': 'application/json',
-    'Authorization': f"Bearer d3de4afa-35c6-4fcb-9738-de706606389d	"
+    'Authorization': f"Bearer d3de4afa-35c6-4fcb-9738-de706606389d"
     }
 
     response = requests.request("POST", url, headers=headers, data=payload)
     response_json = response.json()
-    message = response_json["choices"][0]["message"]["content"]
-    return message.replace("\n", " ")
+
+    message = str(response_json["choices"][0]["text"]).strip()
+    message = message.replace("\n", " ")
+    return message.replace("\\", "")

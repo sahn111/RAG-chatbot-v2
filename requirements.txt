@@ -1,15 +1,6 @@
-pandas==1.5.3
-torch==1.13.1
-transformers==4.27.2
-sentence-transformers==2.2.2
-langchain==0.1.13
-langchain-community<0.1,>=0.0.29
-langchain_openai==0.1.1
-streamlit==1.32.2
-tiktoken==0.6.0
-fastapi==0.110.0
-python-dotenv>=0.21.0
-openai==1.14.3
-faiss_cpu==1.8.0
-ctransformers
+pypdf
+langchain
+chromadb # Vector storage
+pytest
+boto3
 uvicorn

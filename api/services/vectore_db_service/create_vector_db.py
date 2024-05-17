@@ -1,20 +1,21 @@
-import pandas as pd
-import numpy as np
-import faiss
+import argparse
+import os
+import shutil
+from langchain.document_loaders.csv_loader import CSVLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.schema.document import Document
+from langchain_community.vectorstores import Chroma
 
-from ..embedding_model import get_embedding_model_service
+from .document_service import *
 
 def create_vector_database():
-    model = get_embedding_model_service()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset", action="store_true", help="Reset the database.")
+    args = parser.parse_args()
+    if args.reset:
+        print("✨ Clearing Database")
+        clear_database()
 
-    df = pd.read_csv('~/RAG-chatbot-v2/csv_store/TCT_first_items.csv')
-    texts = df['text'].tolist()
-    embeddings = model.encode(texts)
-    dimension = embeddings.shape[1]
-
-    index = faiss.IndexFlatL2(dimension)
-    index.add(np.array(embeddings))
-
-    faiss.write_index(index, "laws_index.faiss")
-    df.to_pickle("laws_dataframe.pkl")
-    return True 
+    documents = load_documents()
+    chunks = split_documents(documents)
+    add_to_chroma(chunks)

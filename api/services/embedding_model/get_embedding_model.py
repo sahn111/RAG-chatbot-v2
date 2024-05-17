@@ -1,5 +1,5 @@
-from sentence_transformers import SentenceTransformer
+from langchain_community.embeddings.ollama import OllamaEmbeddings
 
-def get_embedding_model_service():
-    model = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2')
-    return model
+def get_embedding_service():
+    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    return embeddings

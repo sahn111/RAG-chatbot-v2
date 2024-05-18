@@ -13,7 +13,6 @@ def create_vector_database():
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
     args = parser.parse_args()
     if args.reset:
-        print("✨ Clearing Database")
         clear_database()
 
     documents = load_documents()

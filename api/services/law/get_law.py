@@ -7,29 +7,15 @@ from models import QuestionModel
 
 from ..vectore_db_service.get_from_db import *
 
+from .get_law_prompt import PROMPT_TEMPLATE
+
 CHROMA_PATH = "chroma"
-
-PROMPT_TEMPLATE = """
- - You are a good lawyer who lives in turkey.
-
- - Answer the question only in turkish language.
- 
-Answer the question based only on the following context:
-
-{context}
-
----
-
-Answer the question in turkish only based on the above context: {question}
-"""
 
 def get_relevant_laws_service(question : QuestionModel):
     results = query_rag(question.question)
     context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context=context_text, question=question.question)
-
-    print("--------------------------------", prompt)
 
     url = "https://api.awanllm.com/v1/completions"
     payload = json.dumps({
